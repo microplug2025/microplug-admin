@@ -1,30 +1,46 @@
 import mongoose from "mongoose";
 
+if (process.env.NODE_ENV === "development") {
+  delete mongoose.models.Order; // Clear cached model in development
+}
+
 const orderSchema = new mongoose.Schema({
-  customerClerkId: String,
+  customerClerkId: String, // Clerk ID of the customer
+  email: String, // Customer's email
+  name: String, // Customer's full name
   products: [
     {
       product: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "Product",
+        ref: "Product", // Reference to the Product model
       },
-      color: String,
-      size: String,
-      quantity: Number,
+      title: String, // Add the product title here
+      color: String, // Selected color of the product
+      size: String, // Selected size of the product
+      quantity: Number, // Quantity of the product
     },
   ],
-  shippingAddress: {
-    street: String,
-    city: String,
-    state: String,
-    postalCode: String,
-    country: String,
+  billingDetails: {
+    firstName: String, // Customer's first name
+    lastName: String, // Customer's last name
+    companyName: String, // Optional company name
+    townCity: String, // Town or city
+    phoneNumber: String, // Phone number
+    orderNotes: String, // Optional order notes
   },
-  shippingRate: String,
-  totalAmount: Number,
+  shippingDetails: {
+    shippingMethod: String, // Selected shipping method
+    shippingCost: Number, // Shipping cost
+  },
+  paymentDetails: {
+    mpesaName: String, // Name associated with Mpesa
+    mobileNumber: String, // Mobile number used for Mpesa
+    transactionCode: String, // Mpesa transaction code
+  },
+  totalAmount: Number, // Total amount including shipping
   createdAt: {
     type: Date,
-    default: Date.now,
+    default: Date.now, // Timestamp of order creation
   },
 });
 

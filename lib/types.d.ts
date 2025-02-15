@@ -15,11 +15,13 @@ type ProductType = {
   collections: [CollectionType];
   tags: [string];
   sizes: [string];
+  quantity: number;
   colors: [string];
   price: number;
   expense: number;
   createdAt: Date;
   updatedAt: Date;
+  datasheet?: string;
 }
 
 type OrderColumnType = {
@@ -31,9 +33,13 @@ type OrderColumnType = {
 }
 
 type OrderItemType = {
-  product: ProductType
-  color: string;
-  size: string;
+  product: {
+    _id: string;
+    title: string;
+    price: number;
+  };
+  color?: string;
+  size?: string;
   quantity: number;
 }
 

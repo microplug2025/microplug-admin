@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { stripe } from "@/lib/stripe";
-
+import Order from "@/lib/models/Order"; // Import the Order model
+import { connectToDB } from "@/lib/mongoDB"; // Import the database connection utility
+import Customer from "@/lib/models/Customer";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
@@ -13,43 +14,72 @@ export async function OPTIONS() {
 
 export async function POST(req: NextRequest) {
   try {
-    const { cartItems, customer } = await req.json();
+    // Connect to the database
+    await connectToDB();
+  
+    // Parse the request body
+    const {
+      customer,
+      cartItems,
+      billingDetails,
+      shippingDetails,
+      paymentDetails,
+      totalAmount,
+    } = await req.json();
 
-    if (!cartItems || !customer) {
+    // Validate required data
+    if (
+      !customer ||
+      !cartItems ||
+      !billingDetails ||
+      !shippingDetails ||
+      !paymentDetails ||
+      !totalAmount
+    ) {
       return new NextResponse("Not enough data to checkout", { status: 400 });
     }
 
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ["card"],
-      mode: "payment",
-      shipping_address_collection: {
-        allowed_countries: ["US", "CA"],
-      },
-      shipping_options: [
-        { shipping_rate: "shr_1MfufhDgraNiyvtnDGef2uwK" },
-        { shipping_rate: "shr_1OpHFHDgraNiyvtnOY4vDjuY" },
-      ],
-      line_items: cartItems.map((cartItem: any) => ({
-        price_data: {
-          currency: "cad",
-          product_data: {
-            name: cartItem.item.title,
-            metadata: {
-              productId: cartItem.item._id,
-              ...(cartItem.size && { size: cartItem.size }),
-              ...(cartItem.color && { color: cartItem.color }),
-            },
-          },
-          unit_amount: cartItem.item.price * 100,
-        },
-        quantity: cartItem.quantity,
-      })),
-      client_reference_id: customer.clerkId,
-      success_url: `${process.env.ECOMMERCE_STORE_URL}/payment_success`,
-      cancel_url: `${process.env.ECOMMERCE_STORE_URL}/cart`,
+    // Map cart items to the products array in the order schema
+    const products = cartItems.map((cartItem: any) => ({
+      product: cartItem.item._id, // Product ID
+      title: cartItem.item.title, // Include the product title
+      color: cartItem.color || null, // Optional color
+      size: cartItem.size || null, // Optional size
+      quantity: cartItem.quantity, // Quantity
+    }));
+   
+  // **Check if customer exists in the database**
+  let existingCustomer = await Customer.findOne({ clerkId: customer.clerkId });
+  if (!existingCustomer) {
+    // **Create a new customer record if not found**
+    existingCustomer = new Customer({
+      clerkId: customer.clerkId,
+      name: customer.name,
+      email: customer.email,
+      orders: [], // Initialize with an empty order list
+    });
+    await existingCustomer.save(); 
+  }
+
+    // Create a new order document
+    const order = new Order({
+      customerClerkId: customer.clerkId, // Clerk ID of the customer
+      email: customer.email, // Customer's email
+      name: customer.name, // Customer's full name
+      products, // Array of products with title
+      billingDetails, // Billing details
+      shippingDetails, // Shipping details
+      paymentDetails, // Payment details
+      totalAmount, // Total amount including shipping
     });
 
-    return NextResponse.json(session, { headers: corsHeaders });
+    // Save the order to the database
+    await order.save();   
+    // Return a success response
+    return NextResponse.json(
+      { message: "Order created successfully", orderId: order._id },
+      { headers: corsHeaders }
+    );
   } catch (err) {
     console.log("[checkout_POST]", err);
     return new NextResponse("Internal Server Error", { status: 500 });

@@ -15,6 +15,7 @@ const Orders = () => {
     try {
       const res = await fetch(`/api/orders`)
       const data = await res.json()
+      console.log(data)
       setOrders(data)
       setLoading(false)
     } catch (err) {

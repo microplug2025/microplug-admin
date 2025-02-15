@@ -5,6 +5,7 @@ import { auth } from "@clerk/nextjs";
 
 import { NextRequest, NextResponse } from "next/server";
 
+// Handle GET request to fetch a product by ID
 export const GET = async (
   req: NextRequest,
   { params }: { params: { productId: string } }
@@ -15,7 +16,8 @@ export const GET = async (
     const product = await Product.findById(params.productId).populate({
       path: "collections",
       model: Collection,
-    });
+    })
+    
 
     if (!product) {
       return new NextResponse(
@@ -23,6 +25,8 @@ export const GET = async (
         { status: 404 }
       );
     }
+
+    // Include datasheet URL in the response
     return new NextResponse(JSON.stringify(product), {
       status: 200,
       headers: {
@@ -37,6 +41,8 @@ export const GET = async (
   }
 };
 
+// Handle POST request for updating a product by ID
+// Handle POST request for updating a product by ID
 export const POST = async (
   req: NextRequest,
   { params }: { params: { productId: string } }
@@ -59,6 +65,7 @@ export const POST = async (
       );
     }
 
+    // Extract the request body fields, including the datasheet and quantity fields
     const {
       title,
       description,
@@ -70,34 +77,34 @@ export const POST = async (
       colors,
       price,
       expense,
+      quantity,  // Added quantity field
+      datasheet, // Include datasheet URL field
     } = await req.json();
 
-    if (!title || !description || !media || !category || !price || !expense) {
-      return new NextResponse("Not enough data to create a new product", {
-        status: 400,
-      });
+    if (!title || !description || !media || !category || !price || !expense || quantity === undefined) {
+      return new NextResponse("Not enough data to update product", { status: 400 });
     }
 
+    // Preserve the existing datasheet if none is provided in the request
+    const finalDatasheet = datasheet || product.datasheet; // If no new datasheet, keep the old one
+
+    // Identify collections to add and remove
     const addedCollections = collections.filter(
       (collectionId: string) => !product.collections.includes(collectionId)
     );
-    // included in new data, but not included in the previous data
 
     const removedCollections = product.collections.filter(
       (collectionId: string) => !collections.includes(collectionId)
     );
-    // included in previous data, but not included in the new data
 
-    // Update collections
+    // Update collections with this product
     await Promise.all([
-      // Update added collections with this product
       ...addedCollections.map((collectionId: string) =>
         Collection.findByIdAndUpdate(collectionId, {
           $push: { products: product._id },
         })
       ),
-
-      // Update removed collections without this product
+      // Remove product from collections
       ...removedCollections.map((collectionId: string) =>
         Collection.findByIdAndUpdate(collectionId, {
           $pull: { products: product._id },
@@ -105,7 +112,7 @@ export const POST = async (
       ),
     ]);
 
-    // Update product
+    // Update product with the new data, including the quantity and the preserved datasheet
     const updatedProduct = await Product.findByIdAndUpdate(
       product._id,
       {
@@ -119,6 +126,8 @@ export const POST = async (
         colors,
         price,
         expense,
+        quantity, // Ensure quantity is updated
+        datasheet: finalDatasheet, // Ensure datasheet is updated or preserved
       },
       { new: true }
     ).populate({ path: "collections", model: Collection });
@@ -131,7 +140,7 @@ export const POST = async (
     return new NextResponse("Internal error", { status: 500 });
   }
 };
-
+// Handle DELETE request for deleting a product by ID
 export const DELETE = async (
   req: NextRequest,
   { params }: { params: { productId: string } }
@@ -156,7 +165,7 @@ export const DELETE = async (
 
     await Product.findByIdAndDelete(product._id);
 
-    // Update collections
+    // Update collections by removing the product
     await Promise.all(
       product.collections.map((collectionId: string) =>
         Collection.findByIdAndUpdate(collectionId, {
@@ -175,4 +184,3 @@ export const DELETE = async (
 };
 
 export const dynamic = "force-dynamic";
-

@@ -22,17 +22,21 @@ export const columns: ColumnDef<ProductType>[] = [
     header: "Category",
   },
   {
+    accessorKey: "quantity", // Add this line to display the quantity
+    header: "Quantity", // Ensure you match the property name from the API response
+  },
+  {
     accessorKey: "collections",
-    header: "Collections",
+    header: "main category",
     cell: ({ row }) => row.original.collections.map((collection) => collection.title).join(", "),
   },
   {
     accessorKey: "price",
-    header: "Price ($)",
+    header: "Price (ksh)",
   },
   {
     accessorKey: "expense",
-    header: "Expense ($)",
+    header: "Expense (ksh)",
   },
   {
     id: "actions",

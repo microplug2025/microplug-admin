@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
-
+import FileUpload from "../custom ui/Fileupload";
 import { Separator } from "../ui/separator";
 import { Button } from "@/components/ui/button";
 import {
@@ -36,11 +36,14 @@ const formSchema = z.object({
   colors: z.array(z.string()),
   price: z.coerce.number().min(0.1),
   expense: z.coerce.number().min(0.1),
+  datasheet: z.string().optional(), // Add the datasheet field here
+  quantity: z.coerce.number().min(0).default(0), // Added quantity field
 });
 
 interface ProductFormProps {
-  initialData?: ProductType | null; //Must have "?" to make it optional
+  initialData?: ProductType | null; // Must have "?" to make it optional
 }
+
 
 const ProductForm: React.FC<ProductFormProps> = ({ initialData }) => {
   const router = useRouter();
@@ -71,6 +74,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData }) => {
     defaultValues: initialData
       ? {
           ...initialData,
+          datasheet: initialData.datasheet || "",  // Ensure datasheet is set
           collections: initialData.collections.map(
             (collection) => collection._id
           ),
@@ -86,8 +90,11 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData }) => {
           colors: [],
           price: 0.1,
           expense: 0.1,
+          quantity: 0, // Add default quantity value
+          datasheet: "",
         },
   });
+  console.log("Initial Data in Form:", initialData);
 
   const handleKeyPress = (
     e:
@@ -99,28 +106,39 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData }) => {
     }
   };
 
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    try {
-      setLoading(true);
-      const url = initialData
-        ? `/api/products/${initialData._id}`
-        : "/api/products";
-      const res = await fetch(url, {
-        method: "POST",
-        body: JSON.stringify(values),
-      });
-      if (res.ok) {
-        setLoading(false);
-        toast.success(`Product ${initialData ? "updated" : "created"}`);
-        window.location.href = "/products";
-        router.push("/products");
-      }
-    } catch (err) {
-      console.log("[products_POST]", err);
-      toast.error("Something went wrong! Please try again.");
-    }
-  };
+const onSubmit = async (values: z.infer<typeof formSchema>) => {
+  try {
+    setLoading(true);
 
+    // Add a removeDatasheet flag to the values if the datasheet is being removed
+    const updatedValues = {
+      ...values,
+      removeDatasheet: !values.datasheet, // Set removeDatasheet to true if datasheet is empty
+    };
+
+    const url = initialData
+      ? `/api/products/${initialData._id}`
+      : "/api/products";
+
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(updatedValues), // Send the updated values with the removeDatasheet flag
+    });
+
+    if (res.ok) {
+      setLoading(false);
+      toast.success(`Product ${initialData ? "updated" : "created"}`);
+      window.location.href = "/products";
+      router.push("/products");
+    }
+  } catch (err) {
+    console.log("[products_POST]", err);
+    toast.error("Something went wrong! Please try again.");
+  }
+};
   return loading ? (
     <Loader />
   ) : (
@@ -182,9 +200,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData }) => {
                     value={field.value}
                     onChange={(url) => field.onChange([...field.value, url])}
                     onRemove={(url) =>
-                      field.onChange([
-                        ...field.value.filter((image) => image !== url),
-                      ])
+                      field.onChange([ ...field.value.filter((image) => image !== url), ])
                     }
                   />
                 </FormControl>
@@ -199,7 +215,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData }) => {
               name="price"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Price ($)</FormLabel>
+                  <FormLabel>Price (ksh)</FormLabel>
                   <FormControl>
                     <Input
                       type="number"
@@ -217,7 +233,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData }) => {
               name="expense"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Expense ($)</FormLabel>
+                  <FormLabel>Expense (ksh)</FormLabel>
                   <FormControl>
                     <Input
                       type="number"
@@ -259,9 +275,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData }) => {
                       value={field.value}
                       onChange={(tag) => field.onChange([...field.value, tag])}
                       onRemove={(tagToRemove) =>
-                        field.onChange([
-                          ...field.value.filter((tag) => tag !== tagToRemove),
-                        ])
+                        field.onChange([ ...field.value.filter((tag) => tag !== tagToRemove), ])
                       }
                     />
                   </FormControl>
@@ -285,11 +299,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData }) => {
                           field.onChange([...field.value, _id])
                         }
                         onRemove={(idToRemove) =>
-                          field.onChange([
-                            ...field.value.filter(
-                              (collectionId) => collectionId !== idToRemove
-                            ),
-                          ])
+                          field.onChange([ ...field.value.filter((collectionId) => collectionId !== idToRemove), ])
                         }
                       />
                     </FormControl>
@@ -312,11 +322,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData }) => {
                         field.onChange([...field.value, color])
                       }
                       onRemove={(colorToRemove) =>
-                        field.onChange([
-                          ...field.value.filter(
-                            (color) => color !== colorToRemove
-                          ),
-                        ])
+                        field.onChange([ ...field.value.filter((color) => color !== colorToRemove), ])
                       }
                     />
                   </FormControl>
@@ -338,11 +344,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData }) => {
                         field.onChange([...field.value, size])
                       }
                       onRemove={(sizeToRemove) =>
-                        field.onChange([
-                          ...field.value.filter(
-                            (size) => size !== sizeToRemove
-                          ),
-                        ])
+                        field.onChange([ ...field.value.filter((size) => size !== sizeToRemove), ])
                       }
                     />
                   </FormControl>
@@ -350,6 +352,77 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData }) => {
                 </FormItem>
               )}
             />
+            <FormField
+              control={form.control}
+              name="quantity"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Quantity</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      placeholder="Quantity"
+                      {...field}
+                      min={0}
+                      onKeyDown={handleKeyPress}
+                    />
+                  </FormControl>
+                  <FormMessage className="text-red-1" />
+                </FormItem>
+              )}
+            />
+
+
+          
+           {/* File upload section starts here */}
+
+           <FormField
+  control={form.control}
+  name="datasheet"
+  render={({ field }) => (
+    <FormItem>
+      <FormLabel>Datasheet (PDF/Excel)</FormLabel>
+      <FormControl>
+        <FileUpload
+          uploadPreset="admin-ecommerce"
+          onUpload={(url: string) => {
+            form.setValue("datasheet", url); // ✅ Set uploaded file URL in form state
+            form.trigger("datasheet"); // ✅ Validate field
+          }}
+          buttonText="Upload Datasheet"
+          value={field.value || ""}
+        />
+      </FormControl>
+
+      {/* ✅ Show "View" and "Remove" options if a datasheet is uploaded */}
+      {field.value && (
+        <div className="mt-2 flex items-center gap-4">
+          <a
+            href={field.value}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-500 underline"
+          >
+            View Current Datasheet
+          </a>
+          <button
+            type="button"
+            onClick={() => form.setValue("datasheet", "")} // ✅ Remove datasheet
+            className="text-red-500 hover:text-red-700 text-sm font-medium"
+          >
+            Remove
+          </button>
+        </div>
+      )}
+
+      <FormMessage className="text-red-1" />
+    </FormItem>
+  )}
+/>
+
+
+
+
           </div>
 
           <div className="flex gap-10">

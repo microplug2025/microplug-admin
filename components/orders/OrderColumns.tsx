@@ -3,35 +3,55 @@
 import { ColumnDef } from "@tanstack/react-table";
 import Link from "next/link";
 
-export const columns: ColumnDef<OrderColumnType>[] = [
+// Order Type
+type OrderType = {
+  _id: string;
+  customerClerkId: string;
+  email: string;
+  name: string;
+  totalAmount: number;
+  createdAt: string; // Directly stored as a string in the database
+};
+
+export const columns: ColumnDef<OrderType>[] = [
   {
     accessorKey: "_id",
     header: "Order",
     cell: ({ row }) => {
+      const orderId: string = row.original._id;
       return (
-        <Link
-          href={`/orders/${row.original._id}`}
-          className="hover:text-red-1"
-        >
-          {row.original._id}
+        <Link href={`/orders/${orderId}`} className="hover:text-red-1">
+          {orderId}
         </Link>
       );
     },
   },
   {
-    accessorKey: "customer",
+    accessorKey: "name",
     header: "Customer",
   },
   {
-    accessorKey: "products",
-    header: "Products",
+    accessorKey: "email",
+    header: "Email",
+    cell: ({ row }) => {
+      const email: string = row.original.email || "N/A";
+      return <span>{email}</span>;
+    },
   },
   {
     accessorKey: "totalAmount",
-    header: "Total ($)",
+    header: "Total Amount",
+    cell: ({ row }) => {
+      const totalAmount: number = row.original.totalAmount;
+      return `KSh${totalAmount.toFixed(2)}`;
+    },
   },
   {
     accessorKey: "createdAt",
     header: "Created At",
+    cell: ({ row }) => {
+      const createdAt: string = row.original.createdAt || "N/A"; // Directly use string from DB
+      return <span>{createdAt}</span>;
+    },
   },
 ];
