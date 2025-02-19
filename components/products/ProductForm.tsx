@@ -251,7 +251,7 @@ const onSubmit = async (values: z.infer<typeof formSchema>) => {
               name="category"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Category</FormLabel>
+                  <FormLabel>sub Category</FormLabel>
                   <FormControl>
                     <Input
                       placeholder="Category"
@@ -289,10 +289,10 @@ const onSubmit = async (values: z.infer<typeof formSchema>) => {
                 name="collections"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Collections</FormLabel>
+                    <FormLabel>main category</FormLabel>
                     <FormControl>
                       <MultiSelect
-                        placeholder="Collections"
+                        placeholder="main categories"
                         collections={collections}
                         value={field.value}
                         onChange={(_id) =>
