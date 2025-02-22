@@ -31,11 +31,15 @@ const ImageUpload: React.FC<ImageUploadProps> = ({ value, onChange, onRemove }) 
       <div className="flex gap-4 flex-wrap">
         {value.map((url, index) => (
           <div key={index} className="relative">
-            <Image
-              src={url}
-              alt={`Upload ${index}`}
-              className="w-32 h-32 object-cover rounded-md"
-            />
+         <div className="relative w-32 h-32">
+  <Image
+    src={url}
+    alt={`Upload ${index}`}
+    fill
+    className="object-cover rounded-md"
+  />
+</div>
+
             <button
               type="button"
               onClick={() => onRemove(url)}
